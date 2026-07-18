@@ -2,60 +2,60 @@ import { getDatabase } from '@/db/database';
 import { randomUUID } from 'node:crypto';
 
 export const subscriberQueries = {
-  create(name: string, email: string): any {
+  async create(name: string, email: string): Promise<any> {
     const id = randomUUID();
     const now = new Date().toISOString();
 
-    getDatabase()
-      .prepare(
-        'INSERT INTO subscribers (id, name, email, status, consent_at, created_at) VALUES (?, ?, ?, ?, ?, ?)'
-      )
-      .run(id, name, email.toLowerCase(), 'ACTIVE', now, now);
+    await getDatabase().query(
+      'INSERT INTO subscribers (id, name, email, status, consent_at, created_at) VALUES ($1, $2, $3, $4, $5, $6)',
+      [id, name, email.toLowerCase(), 'ACTIVE', now, now]
+    );
 
     return this.findById(id);
   },
 
-  findById(id: string): any {
-    return getDatabase()
-      .prepare(
-        'SELECT id, name, email, status, consent_at, created_at, unsubscribed_at FROM subscribers WHERE id = ?'
-      )
-      .get(id);
+  async findById(id: string): Promise<any> {
+    const result = await getDatabase().query(
+      'SELECT id, name, email, status, consent_at, created_at, unsubscribed_at FROM subscribers WHERE id = $1',
+      [id]
+    );
+    return result.rows[0] ?? null;
   },
 
-  findByEmail(email: string): any {
-    return getDatabase()
-      .prepare('SELECT id, status FROM subscribers WHERE email = ?')
-      .get(email.toLowerCase());
+  async findByEmail(email: string): Promise<any> {
+    const result = await getDatabase().query(
+      'SELECT id, status FROM subscribers WHERE email = $1',
+      [email.toLowerCase()]
+    );
+    return result.rows[0] ?? null;
   },
 
-  resubscribe(id: string, name: string): any {
+  async resubscribe(id: string, name: string): Promise<any> {
     const now = new Date().toISOString();
 
-    getDatabase()
-      .prepare(
-        'UPDATE subscribers SET name = ?, status = \'ACTIVE\', consent_at = ?, unsubscribed_at = NULL WHERE id = ?'
-      )
-      .run(name, now, id);
+    await getDatabase().query(
+      "UPDATE subscribers SET name = $1, status = 'ACTIVE', consent_at = $2, unsubscribed_at = NULL WHERE id = $3",
+      [name, now, id]
+    );
 
     return this.findById(id);
   },
 
-  listAll(): any[] {
-    return getDatabase()
-      .prepare(
-        'SELECT id, name, email, status, consent_at, created_at, unsubscribed_at FROM subscribers ORDER BY created_at DESC'
-      )
-      .all();
+  async listAll(): Promise<any[]> {
+    const result = await getDatabase().query(
+      'SELECT id, name, email, status, consent_at, created_at, unsubscribed_at FROM subscribers ORDER BY created_at DESC'
+    );
+    return result.rows;
   },
 
-  updateStatus(id: string, status: 'ACTIVE' | 'UNSUBSCRIBED'): boolean {
+  async updateStatus(id: string, status: 'ACTIVE' | 'UNSUBSCRIBED'): Promise<boolean> {
     const unsubscribedAt = status === 'UNSUBSCRIBED' ? new Date().toISOString() : null;
 
-    const result = getDatabase()
-      .prepare('UPDATE subscribers SET status = ?, unsubscribed_at = ? WHERE id = ?')
-      .run(status, unsubscribedAt, id);
+    const result = await getDatabase().query(
+      'UPDATE subscribers SET status = $1, unsubscribed_at = $2 WHERE id = $3',
+      [status, unsubscribedAt, id]
+    );
 
-    return result.changes > 0;
+    return (result.rowCount ?? 0) > 0;
   },
 };

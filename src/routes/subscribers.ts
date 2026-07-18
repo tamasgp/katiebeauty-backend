@@ -34,14 +34,14 @@ export async function registerSubscriberRoutes(fastify: FastifyInstance): Promis
       }
 
       const email = parsed.data.email.toLowerCase();
-      const existing = subscriberQueries.findByEmail(email);
+      const existing = await subscriberQueries.findByEmail(email);
 
       if (existing) {
-        const row = subscriberQueries.resubscribe(existing.id, parsed.data.name);
+        const row = await subscriberQueries.resubscribe(existing.id, parsed.data.name);
         return reply.send(mapSubscriber(row));
       }
 
-      const row = subscriberQueries.create(parsed.data.name, email);
+      const row = await subscriberQueries.create(parsed.data.name, email);
       return reply.status(201).send(mapSubscriber(row));
     }
   );
@@ -50,7 +50,7 @@ export async function registerSubscriberRoutes(fastify: FastifyInstance): Promis
     '/api/admin/subscribers',
     { onRequest: [fastify.authenticate, requireAdmin] },
     async (_request: FastifyRequest, reply: FastifyReply) => {
-      const rows = subscriberQueries.listAll();
+      const rows = await subscriberQueries.listAll();
       return reply.send(rows.map(mapSubscriber));
     }
   );
@@ -58,7 +58,7 @@ export async function registerSubscriberRoutes(fastify: FastifyInstance): Promis
   fastify.patch<{ Params: { id: string }; Body: z.infer<typeof statusSchema> }>(
     '/api/admin/subscribers/:id/status',
     { onRequest: [fastify.authenticate, requireAdmin] },
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    async (request: FastifyRequest<{ Params: { id: string }; Body: z.infer<typeof statusSchema> }>, reply: FastifyReply) => {
       const parsed = statusSchema.safeParse(request.body);
       if (!parsed.success) {
         return reply.status(400).send({
@@ -66,7 +66,7 @@ export async function registerSubscriberRoutes(fastify: FastifyInstance): Promis
         });
       }
 
-      const updated = subscriberQueries.updateStatus(request.params.id, parsed.data.status);
+      const updated = await subscriberQueries.updateStatus(request.params.id, parsed.data.status);
       if (!updated) {
         return reply.status(404).send({
           message: 'Subscriber not found',

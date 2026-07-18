@@ -2,7 +2,6 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { postQueries } from '@/db/queries/posts';
 import { mapPost } from '@/utils/mappers';
-import { AuthUser } from '@/types';
 
 const postSchema = z.object({
   title: z.string().min(1),
@@ -24,14 +23,14 @@ async function requireAdmin(request: FastifyRequest, reply: FastifyReply): Promi
 
 export async function registerPostRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/api/posts', async (_request: FastifyRequest, reply: FastifyReply) => {
-    const rows = postQueries.listPublished();
+    const rows = await postQueries.listPublished();
     return reply.send(rows.map(mapPost));
   });
 
   fastify.get<{ Params: { slug: string } }>(
     '/api/posts/:slug',
     async (request: FastifyRequest<{ Params: { slug: string } }>, reply: FastifyReply) => {
-      const row = postQueries.findBySlug(request.params.slug);
+      const row = await postQueries.findBySlug(request.params.slug);
       if (!row) {
         return reply.status(404).send({
           message: 'Post not found',
@@ -45,7 +44,7 @@ export async function registerPostRoutes(fastify: FastifyInstance): Promise<void
     '/api/admin/posts',
     { onRequest: [fastify.authenticate, requireAdmin] },
     async (_request: FastifyRequest, reply: FastifyReply) => {
-      const rows = postQueries.listAll();
+      const rows = await postQueries.listAll();
       return reply.send(rows.map(mapPost));
     }
   );
@@ -64,7 +63,7 @@ export async function registerPostRoutes(fastify: FastifyInstance): Promise<void
 
       const p = parsed.data;
       try {
-        const row = postQueries.create(
+        const row = await postQueries.create(
           p.title,
           p.slug,
           p.excerpt,
@@ -76,7 +75,7 @@ export async function registerPostRoutes(fastify: FastifyInstance): Promise<void
         );
         return reply.status(201).send(mapPost(row));
       } catch (error) {
-        if (String(error).includes('UNIQUE')) {
+        if ((error as any).code === '23505') {
           return reply.status(409).send({
             message: 'Slug already exists',
           });
@@ -89,7 +88,7 @@ export async function registerPostRoutes(fastify: FastifyInstance): Promise<void
   fastify.put<{ Params: { id: string }; Body: z.infer<typeof postSchema> }>(
     '/api/admin/posts/:id',
     { onRequest: [fastify.authenticate, requireAdmin] },
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    async (request: FastifyRequest<{ Params: { id: string }; Body: z.infer<typeof postSchema> }>, reply: FastifyReply) => {
       const parsed = postSchema.safeParse(request.body);
       if (!parsed.success) {
         return reply.status(400).send({
@@ -100,7 +99,7 @@ export async function registerPostRoutes(fastify: FastifyInstance): Promise<void
 
       const p = parsed.data;
       try {
-        const row = postQueries.update(
+        const row = await postQueries.update(
           request.params.id,
           p.title,
           p.slug,
@@ -117,7 +116,7 @@ export async function registerPostRoutes(fastify: FastifyInstance): Promise<void
         }
         return reply.send(mapPost(row));
       } catch (error) {
-        if (String(error).includes('UNIQUE')) {
+        if ((error as any).code === '23505') {
           return reply.status(409).send({
             message: 'Slug already exists',
           });
@@ -130,8 +129,8 @@ export async function registerPostRoutes(fastify: FastifyInstance): Promise<void
   fastify.delete<{ Params: { id: string } }>(
     '/api/admin/posts/:id',
     { onRequest: [fastify.authenticate, requireAdmin] },
-    async (request: FastifyRequest, reply: FastifyReply) => {
-      const deleted = postQueries.delete(request.params.id);
+    async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+      const deleted = await postQueries.delete(request.params.id);
       if (!deleted) {
         return reply.status(404).send({
           message: 'Post not found',

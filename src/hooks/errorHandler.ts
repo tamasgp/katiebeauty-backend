@@ -1,8 +1,8 @@
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { FastifyInstance } from 'fastify';
 import { ZodError } from 'zod';
 
 export function registerErrorHandler(fastify: FastifyInstance): void {
-  fastify.setErrorHandler((error, request, reply) => {
+  fastify.setErrorHandler((error, _request, reply) => {
     fastify.log.error(error);
 
     if (error instanceof ZodError) {
@@ -12,8 +12,8 @@ export function registerErrorHandler(fastify: FastifyInstance): void {
       });
     }
 
-    // Handle SQLite constraint violations
-    if (error.message?.includes('UNIQUE')) {
+    // Handle PostgreSQL unique constraint violations (error code 23505)
+    if ((error as any).code === '23505') {
       return reply.status(409).send({
         message: 'Resource already exists',
       });
@@ -31,7 +31,7 @@ export function registerErrorHandler(fastify: FastifyInstance): void {
       });
     }
 
-    reply.status(error.statusCode || 500).send({
+    return reply.status(error.statusCode || 500).send({
       message: error.message || 'Internal server error',
     });
   });
