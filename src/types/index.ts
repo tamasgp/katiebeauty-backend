@@ -39,7 +39,7 @@ declare global {
     interface ProcessEnv {
       PORT?: string;
       NODE_ENV?: 'development' | 'production' | 'test';
-      DATABASE_FILE?: string;
+      DATABASE_URL?: string;
       JWT_SECRET?: string;
       FRONTEND_ORIGIN?: string;
       ADMIN_EMAIL?: string;
@@ -49,8 +49,15 @@ declare global {
   }
 }
 
+declare module '@fastify/jwt' {
+  interface FastifyJWT {
+    payload: AuthUser;
+    user: AuthUser;
+  }
+}
+
 declare module 'fastify' {
-  interface FastifyRequest {
-    user?: AuthUser;
+  interface FastifyInstance {
+    authenticate(request: import('fastify').FastifyRequest, reply: import('fastify').FastifyReply): Promise<void>;
   }
 }

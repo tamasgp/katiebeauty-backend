@@ -15,7 +15,7 @@ export async function registerUserRoutes(fastify: FastifyInstance): Promise<void
     '/api/admin/users',
     { onRequest: [fastify.authenticate, requireAdmin] },
     async (_request: FastifyRequest, reply: FastifyReply) => {
-      const rows = userQueries.listAll();
+      const rows = await userQueries.listAll();
       return reply.send(rows.map(mapUser));
     }
   );

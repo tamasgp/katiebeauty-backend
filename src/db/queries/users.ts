@@ -4,16 +4,20 @@ import { randomUUID } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 
 export const userQueries = {
-  findByEmail(email: string): any {
-    return getDatabase()
-      .prepare('SELECT * FROM users WHERE email = ?')
-      .get(email.toLowerCase());
+  async findByEmail(email: string): Promise<any> {
+    const result = await getDatabase().query(
+      'SELECT * FROM users WHERE email = $1',
+      [email.toLowerCase()]
+    );
+    return result.rows[0] ?? null;
   },
 
-  findById(id: string): any {
-    return getDatabase()
-      .prepare('SELECT * FROM users WHERE id = ?')
-      .get(id);
+  async findById(id: string): Promise<any> {
+    const result = await getDatabase().query(
+      'SELECT * FROM users WHERE id = $1',
+      [id]
+    );
+    return result.rows[0] ?? null;
   },
 
   async create(name: string, email: string, password: string, role: 'ADMIN' | 'USER' = 'USER'): Promise<AuthUser> {
@@ -21,32 +25,32 @@ export const userQueries = {
     const passwordHash = await bcrypt.hash(password, 12);
     const createdAt = new Date().toISOString();
 
-    getDatabase()
-      .prepare(
-        'INSERT INTO users (id, name, email, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?, ?)'
-      )
-      .run(id, name, email.toLowerCase(), passwordHash, role, createdAt);
+    await getDatabase().query(
+      'INSERT INTO users (id, name, email, password_hash, role, created_at) VALUES ($1, $2, $3, $4, $5, $6)',
+      [id, name, email.toLowerCase(), passwordHash, role, createdAt]
+    );
 
     return { id, name, email: email.toLowerCase(), role };
   },
 
-  updateLastLogin(id: string): void {
-    getDatabase()
-      .prepare('UPDATE users SET last_login_at = ? WHERE id = ?')
-      .run(new Date().toISOString(), id);
+  async updateLastLogin(id: string): Promise<void> {
+    await getDatabase().query(
+      'UPDATE users SET last_login_at = $1 WHERE id = $2',
+      [new Date().toISOString(), id]
+    );
   },
 
-  listAll(): any[] {
-    return getDatabase()
-      .prepare(
-        'SELECT id, name, email, role, created_at, last_login_at FROM users ORDER BY created_at DESC'
-      )
-      .all();
+  async listAll(): Promise<any[]> {
+    const result = await getDatabase().query(
+      'SELECT id, name, email, role, created_at, last_login_at FROM users ORDER BY created_at DESC'
+    );
+    return result.rows;
   },
 
-  seedAdmin(email: string, name: string, password: string): void {
-    if (!this.findByEmail(email)) {
-      this.create(name, email, password, 'ADMIN');
+  async seedAdmin(email: string, name: string, password: string): Promise<void> {
+    const existing = await this.findByEmail(email);
+    if (!existing) {
+      await this.create(name, email, password, 'ADMIN');
     }
   },
 };

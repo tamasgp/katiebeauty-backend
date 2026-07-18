@@ -38,7 +38,7 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
           user,
         });
       } catch (error) {
-        if (String(error).includes('UNIQUE')) {
+        if ((error as any).code === '23505') {
           return reply.status(409).send({
             message: 'This email address is already registered',
           });
@@ -58,14 +58,14 @@ export async function registerAuthRoutes(fastify: FastifyInstance): Promise<void
         });
       }
 
-      const row = userQueries.findByEmail(parsed.data.email);
+      const row = await userQueries.findByEmail(parsed.data.email);
       if (!row || !(await comparePassword(parsed.data.password, row.password_hash))) {
         return reply.status(401).send({
           message: 'Invalid email or password',
         });
       }
 
-      userQueries.updateLastLogin(row.id);
+      await userQueries.updateLastLogin(row.id);
       const user: AuthUser = {
         id: row.id,
         name: row.name,

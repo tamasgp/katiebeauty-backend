@@ -2,7 +2,7 @@ import { getDatabase } from '@/db/database';
 import { randomUUID } from 'node:crypto';
 
 export const postQueries = {
-  create(
+  async create(
     title: string,
     slug: string,
     excerpt: string,
@@ -11,52 +11,50 @@ export const postQueries = {
     status: 'draft' | 'published',
     publishedAt: string,
     authorId: string
-  ): any {
+  ): Promise<any> {
     const id = randomUUID();
     const now = new Date().toISOString();
 
-    getDatabase()
-      .prepare(
-        'INSERT INTO blog_posts (id, title, slug, excerpt, content, image, status, published_at, updated_at, author_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-      )
-      .run(id, title, slug, excerpt, content, image, status, publishedAt, now, authorId);
+    await getDatabase().query(
+      'INSERT INTO blog_posts (id, title, slug, excerpt, content, image, status, published_at, updated_at, author_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)',
+      [id, title, slug, excerpt, content, image, status, publishedAt, now, authorId]
+    );
 
     return this.findById(id);
   },
 
-  findById(id: string): any {
-    return getDatabase()
-      .prepare(
-        'SELECT p.*, u.name as author_name FROM blog_posts p JOIN users u ON u.id = p.author_id WHERE p.id = ?'
-      )
-      .get(id);
+  async findById(id: string): Promise<any> {
+    const result = await getDatabase().query(
+      'SELECT p.*, u.name as author_name FROM blog_posts p JOIN users u ON u.id = p.author_id WHERE p.id = $1',
+      [id]
+    );
+    return result.rows[0] ?? null;
   },
 
-  findBySlug(slug: string, published = true): any {
+  async findBySlug(slug: string, published = true): Promise<any> {
     const query = published
-      ? 'SELECT p.*, u.name as author_name FROM blog_posts p JOIN users u ON u.id = p.author_id WHERE p.slug = ? AND p.status = \'published\''
-      : 'SELECT p.*, u.name as author_name FROM blog_posts p JOIN users u ON u.id = p.author_id WHERE p.slug = ?';
+      ? "SELECT p.*, u.name as author_name FROM blog_posts p JOIN users u ON u.id = p.author_id WHERE p.slug = $1 AND p.status = 'published'"
+      : 'SELECT p.*, u.name as author_name FROM blog_posts p JOIN users u ON u.id = p.author_id WHERE p.slug = $1';
 
-    return getDatabase().prepare(query).get(slug);
+    const result = await getDatabase().query(query, [slug]);
+    return result.rows[0] ?? null;
   },
 
-  listPublished(): any[] {
-    return getDatabase()
-      .prepare(
-        'SELECT p.*, u.name as author_name FROM blog_posts p JOIN users u ON u.id = p.author_id WHERE p.status = \'published\' ORDER BY p.published_at DESC'
-      )
-      .all();
+  async listPublished(): Promise<any[]> {
+    const result = await getDatabase().query(
+      "SELECT p.*, u.name as author_name FROM blog_posts p JOIN users u ON u.id = p.author_id WHERE p.status = 'published' ORDER BY p.published_at DESC"
+    );
+    return result.rows;
   },
 
-  listAll(): any[] {
-    return getDatabase()
-      .prepare(
-        'SELECT p.*, u.name as author_name FROM blog_posts p JOIN users u ON u.id = p.author_id ORDER BY p.updated_at DESC'
-      )
-      .all();
+  async listAll(): Promise<any[]> {
+    const result = await getDatabase().query(
+      'SELECT p.*, u.name as author_name FROM blog_posts p JOIN users u ON u.id = p.author_id ORDER BY p.updated_at DESC'
+    );
+    return result.rows;
   },
 
-  update(
+  async update(
     id: string,
     title: string,
     slug: string,
@@ -65,24 +63,26 @@ export const postQueries = {
     image: string,
     status: 'draft' | 'published',
     publishedAt: string
-  ): any {
+  ): Promise<any> {
     const now = new Date().toISOString();
 
-    const result = getDatabase()
-      .prepare(
-        'UPDATE blog_posts SET title = ?, slug = ?, excerpt = ?, content = ?, image = ?, status = ?, published_at = ?, updated_at = ? WHERE id = ?'
-      )
-      .run(title, slug, excerpt, content, image, status, publishedAt, now, id);
+    const result = await getDatabase().query(
+      'UPDATE blog_posts SET title = $1, slug = $2, excerpt = $3, content = $4, image = $5, status = $6, published_at = $7, updated_at = $8 WHERE id = $9',
+      [title, slug, excerpt, content, image, status, publishedAt, now, id]
+    );
 
-    if (result.changes === 0) {
+    if (result.rowCount === 0) {
       return null;
     }
 
     return this.findById(id);
   },
 
-  delete(id: string): boolean {
-    const result = getDatabase().prepare('DELETE FROM blog_posts WHERE id = ?').run(id);
-    return result.changes > 0;
+  async delete(id: string): Promise<boolean> {
+    const result = await getDatabase().query(
+      'DELETE FROM blog_posts WHERE id = $1',
+      [id]
+    );
+    return (result.rowCount ?? 0) > 0;
   },
 };
