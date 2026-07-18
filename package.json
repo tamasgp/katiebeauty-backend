@@ -6,7 +6,7 @@
   "main": "dist/app.js",
   "scripts": {
     "dev": "tsx watch src/app.ts",
-    "build": "tsc",
+    "build": "tsc && tsc-alias",
     "start": "node dist/app.js",
     "lint": "eslint src --ext .ts",
     "type-check": "tsc --noEmit"
@@ -40,6 +40,7 @@
     "@typescript-eslint/parser": "^6.17.0",
     "eslint": "^8.56.0",
     "tsx": "^4.7.0",
+    "tsc-alias": "^1.9.1",
     "typescript": "^5.3.3"
   }
 }

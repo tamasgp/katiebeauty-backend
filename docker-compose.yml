@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-katiebeauty}
+      POSTGRES_USER: ${POSTGRES_USER:-katiebeauty}
+      # ⚠️  Override POSTGRES_PASSWORD in production — never use the default
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secure-password-change-me}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-katiebeauty} -d ${POSTGRES_DB:-katiebeauty}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - katiebeauty-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: ${PORT:-3001}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-katiebeauty}:${POSTGRES_PASSWORD:-secure-password-change-me}@postgres:5432/${POSTGRES_DB:-katiebeauty}
+      # ⚠️  Override JWT_SECRET in production — never use the default
+      JWT_SECRET: ${JWT_SECRET:-development-secret-key}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@katiebeauty.hu}
+      ADMIN_NAME: ${ADMIN_NAME:-Katie Beauty Admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin-password-change-me}
+    ports:
+      - "${PORT:-3001}:${PORT:-3001}"
+    volumes:
+      - ./src:/app/src
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - katiebeauty-network
+
+networks:
+  katiebeauty-network:
+    driver: bridge
+
+volumes:
+  pgdata:
