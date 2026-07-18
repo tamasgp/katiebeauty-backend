@@ -1,6 +1,6 @@
 # Katie Beauty Backend API
 
-A modern, type-safe backend API built with Fastify, TypeScript, and SQLite.
+A modern, type-safe backend API built with Fastify, TypeScript, and PostgreSQL.
 
 ## Features
 
@@ -12,6 +12,8 @@ A modern, type-safe backend API built with Fastify, TypeScript, and SQLite.
 - 👥 **Role-based Access Control** - Admin and user roles
 - ✅ **Zod Validation** - Runtime type validation
 - 🛡️ **Security** - Helmet for HTTP headers, CORS support
+- 🐘 **PostgreSQL** - Reliable, production-grade database
+- 🐳 **Docker** - Easy local development and production deployment
 
 ## Getting Started
 
@@ -19,6 +21,7 @@ A modern, type-safe backend API built with Fastify, TypeScript, and SQLite.
 
 - Node.js 18+
 - npm or yarn
+- PostgreSQL 16+ (or use Docker)
 
 ### Installation
 
@@ -48,6 +51,77 @@ The API will start at `http://localhost:3001`
 npm run build
 npm start
 ```
+
+## Docker
+
+The easiest way to run the full stack locally is with Docker Compose.
+
+### Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/)
+
+### Quick Start (Development)
+
+```bash
+# Copy the Docker environment file
+cp .env.docker .env.docker.local
+# Edit .env.docker.local and change passwords as needed
+
+# Start all services (PostgreSQL + backend with hot reload)
+docker-compose --env-file .env.docker up
+
+# Or run in the background
+docker-compose --env-file .env.docker up -d
+```
+
+The API will be available at `http://localhost:3001`.
+
+### Production
+
+```bash
+# Production requires explicit secrets (no defaults)
+export POSTGRES_PASSWORD=your-strong-db-password
+export JWT_SECRET=your-strong-jwt-secret
+export ADMIN_PASSWORD=your-admin-password
+export FRONTEND_ORIGIN=https://your-frontend-domain.com
+
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+### Useful Commands
+
+```bash
+# View live logs
+docker-compose logs -f backend
+docker-compose logs -f postgres
+
+# Run database seed / migrations
+docker-compose exec backend npm run seed
+
+# Rebuild after dependency changes
+docker-compose build backend
+
+# Stop all services
+docker-compose down
+
+# Stop and remove database volume (destructive!)
+docker-compose down -v
+```
+
+### Environment Variables for Docker
+
+All defaults are in `.env.docker`. Override them by providing your own values:
+
+| Variable | Default | Description |
+|---|---|---|
+| `POSTGRES_DB` | `katiebeauty` | Database name |
+| `POSTGRES_USER` | `katiebeauty` | Database user |
+| `POSTGRES_PASSWORD` | `secure-password-change-me` | **Change in production** |
+| `PORT` | `3001` | Backend port |
+| `JWT_SECRET` | `development-secret-key` | **Change in production** |
+| `ADMIN_EMAIL` | `admin@katiebeauty.hu` | Initial admin account email |
+| `ADMIN_PASSWORD` | `admin-password-change-me` | **Change in production** |
+| `FRONTEND_ORIGIN` | `http://localhost:5173` | Allowed CORS origin |
 
 ## API Endpoints
 
