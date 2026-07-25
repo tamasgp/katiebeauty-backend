@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
 import { initializeDatabase, closeDatabase } from '@/db/database';
-import { initializeSchema } from '@/db/schema';
+import { runMigrations } from '@/db/migrator';
 import { userQueries } from '@/db/queries/users';
 import { config } from '@/config/env';
 
@@ -10,8 +10,8 @@ export default fp(
     // Initialize database connection
     initializeDatabase();
 
-    // Initialize schema
-    await initializeSchema();
+    // Run pending schema migrations
+    await runMigrations();
 
     // Seed admin user if doesn't exist
     await userQueries.seedAdmin(config.admin.email, config.admin.name, config.admin.password);

@@ -1,9 +1,9 @@
-import { getDatabase } from '@/db/database';
+import { type Migration } from '@/db/migrator';
 
-export async function initializeSchema(): Promise<void> {
-  const pool = getDatabase();
-
-  await pool.query(`
+export const migration: Migration = {
+  version: 1,
+  description: 'initial_schema',
+  up: `
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -48,5 +48,5 @@ export async function initializeSchema(): Promise<void> {
 
     CREATE INDEX IF NOT EXISTS idx_subscribers_status_created
       ON subscribers(status, created_at DESC);
-  `);
-}
+  `,
+};
