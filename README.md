@@ -19,7 +19,7 @@ A modern, type-safe backend API built with Fastify, TypeScript, and PostgreSQL.
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20+
 - npm or yarn
 - PostgreSQL 16+ (or use Docker)
 
