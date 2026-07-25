@@ -17,8 +17,8 @@ export async function runMigrations(): Promise<void> {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
       version     INTEGER PRIMARY KEY,
-      description TEXT        NOT NULL,
-      applied_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      description TEXT    NOT NULL,
+      applied_at  TEXT    NOT NULL
     )
   `);
 
@@ -39,8 +39,8 @@ export async function runMigrations(): Promise<void> {
       await client.query('BEGIN');
       await client.query(migration.up);
       await client.query(
-        'INSERT INTO schema_migrations (version, description) VALUES ($1, $2)',
-        [migration.version, migration.description]
+        'INSERT INTO schema_migrations (version, description, applied_at) VALUES ($1, $2, $3)',
+        [migration.version, migration.description, new Date().toISOString()]
       );
       await client.query('COMMIT');
     } catch (err) {

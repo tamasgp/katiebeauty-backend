@@ -4,7 +4,7 @@ export const migration: Migration = {
   version: 1,
   description: 'initial_schema',
   up: `
-    CREATE TABLE IF NOT EXISTS users (
+    CREATE TABLE users (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       email TEXT NOT NULL,
@@ -16,7 +16,7 @@ export const migration: Migration = {
       CONSTRAINT users_email_lowercase CHECK (email = LOWER(email))
     );
 
-    CREATE TABLE IF NOT EXISTS blog_posts (
+    CREATE TABLE blog_posts (
       id TEXT PRIMARY KEY,
       title TEXT NOT NULL,
       slug TEXT NOT NULL,
@@ -31,10 +31,10 @@ export const migration: Migration = {
       CONSTRAINT blog_posts_author_fk FOREIGN KEY (author_id) REFERENCES users(id)
     );
 
-    CREATE INDEX IF NOT EXISTS idx_blog_posts_status_date
+    CREATE INDEX idx_blog_posts_status_date
       ON blog_posts(status, published_at DESC);
 
-    CREATE TABLE IF NOT EXISTS subscribers (
+    CREATE TABLE subscribers (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       email TEXT NOT NULL,
@@ -46,7 +46,7 @@ export const migration: Migration = {
       CONSTRAINT subscribers_email_lowercase CHECK (email = LOWER(email))
     );
 
-    CREATE INDEX IF NOT EXISTS idx_subscribers_status_created
+    CREATE INDEX idx_subscribers_status_created
       ON subscribers(status, created_at DESC);
   `,
 };
