@@ -1,26 +1,25 @@
-import pg from 'pg';
+import knexLib, { type Knex } from 'knex';
 import { config } from '@/config/env';
 
-const { Pool } = pg;
+let db: Knex;
 
-let pool: pg.Pool;
-
-export function initializeDatabase(): pg.Pool {
-  pool = new Pool({
-    connectionString: config.databaseUrl,
+export function initializeDatabase(): Knex {
+  db = knexLib({
+    client: 'pg',
+    connection: config.databaseUrl,
   });
-  return pool;
+  return db;
 }
 
-export function getDatabase(): pg.Pool {
-  if (!pool) {
+export function getDatabase(): Knex {
+  if (!db) {
     throw new Error('Database not initialized. Call initializeDatabase() first.');
   }
-  return pool;
+  return db;
 }
 
 export async function closeDatabase(): Promise<void> {
-  if (pool) {
-    await pool.end();
+  if (db) {
+    await db.destroy();
   }
 }

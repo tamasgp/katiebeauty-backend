@@ -5,19 +5,11 @@ import bcrypt from 'bcryptjs';
 
 export const userQueries = {
   async findByEmail(email: string): Promise<any> {
-    const result = await getDatabase().query(
-      'SELECT * FROM users WHERE email = $1',
-      [email.toLowerCase()]
-    );
-    return result.rows[0] ?? null;
+    return getDatabase()('users').where('email', email.toLowerCase()).first() ?? null;
   },
 
   async findById(id: string): Promise<any> {
-    const result = await getDatabase().query(
-      'SELECT * FROM users WHERE id = $1',
-      [id]
-    );
-    return result.rows[0] ?? null;
+    return getDatabase()('users').where('id', id).first() ?? null;
   },
 
   async create(name: string, email: string, password: string, role: 'ADMIN' | 'USER' = 'USER'): Promise<AuthUser> {
@@ -25,26 +17,26 @@ export const userQueries = {
     const passwordHash = await bcrypt.hash(password, 12);
     const createdAt = new Date().toISOString();
 
-    await getDatabase().query(
-      'INSERT INTO users (id, name, email, password_hash, role, created_at) VALUES ($1, $2, $3, $4, $5, $6)',
-      [id, name, email.toLowerCase(), passwordHash, role, createdAt]
-    );
+    await getDatabase()('users').insert({
+      id,
+      name,
+      email: email.toLowerCase(),
+      password_hash: passwordHash,
+      role,
+      created_at: createdAt,
+    });
 
     return { id, name, email: email.toLowerCase(), role };
   },
 
   async updateLastLogin(id: string): Promise<void> {
-    await getDatabase().query(
-      'UPDATE users SET last_login_at = $1 WHERE id = $2',
-      [new Date().toISOString(), id]
-    );
+    await getDatabase()('users').where('id', id).update({ last_login_at: new Date().toISOString() });
   },
 
   async listAll(): Promise<any[]> {
-    const result = await getDatabase().query(
-      'SELECT id, name, email, role, created_at, last_login_at FROM users ORDER BY created_at DESC'
-    );
-    return result.rows;
+    return getDatabase()('users')
+      .select('id', 'name', 'email', 'role', 'created_at', 'last_login_at')
+      .orderBy('created_at', 'desc');
   },
 
   async seedAdmin(email: string, name: string, password: string): Promise<void> {

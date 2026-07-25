@@ -6,56 +6,59 @@ export const subscriberQueries = {
     const id = randomUUID();
     const now = new Date().toISOString();
 
-    await getDatabase().query(
-      'INSERT INTO subscribers (id, name, email, status, consent_at, created_at) VALUES ($1, $2, $3, $4, $5, $6)',
-      [id, name, email.toLowerCase(), 'ACTIVE', now, now]
-    );
+    await getDatabase()('subscribers').insert({
+      id,
+      name,
+      email: email.toLowerCase(),
+      status: 'ACTIVE',
+      consent_at: now,
+      created_at: now,
+    });
 
     return this.findById(id);
   },
 
   async findById(id: string): Promise<any> {
-    const result = await getDatabase().query(
-      'SELECT id, name, email, status, consent_at, created_at, unsubscribed_at FROM subscribers WHERE id = $1',
-      [id]
-    );
-    return result.rows[0] ?? null;
+    return getDatabase()('subscribers')
+      .select('id', 'name', 'email', 'status', 'consent_at', 'created_at', 'unsubscribed_at')
+      .where('id', id)
+      .first() ?? null;
   },
 
   async findByEmail(email: string): Promise<any> {
-    const result = await getDatabase().query(
-      'SELECT id, status FROM subscribers WHERE email = $1',
-      [email.toLowerCase()]
-    );
-    return result.rows[0] ?? null;
+    return getDatabase()('subscribers')
+      .select('id', 'status')
+      .where('email', email.toLowerCase())
+      .first() ?? null;
   },
 
   async resubscribe(id: string, name: string): Promise<any> {
     const now = new Date().toISOString();
 
-    await getDatabase().query(
-      "UPDATE subscribers SET name = $1, status = 'ACTIVE', consent_at = $2, unsubscribed_at = NULL WHERE id = $3",
-      [name, now, id]
-    );
+    await getDatabase()('subscribers').where('id', id).update({
+      name,
+      status: 'ACTIVE',
+      consent_at: now,
+      unsubscribed_at: null,
+    });
 
     return this.findById(id);
   },
 
   async listAll(): Promise<any[]> {
-    const result = await getDatabase().query(
-      'SELECT id, name, email, status, consent_at, created_at, unsubscribed_at FROM subscribers ORDER BY created_at DESC'
-    );
-    return result.rows;
+    return getDatabase()('subscribers')
+      .select('id', 'name', 'email', 'status', 'consent_at', 'created_at', 'unsubscribed_at')
+      .orderBy('created_at', 'desc');
   },
 
   async updateStatus(id: string, status: 'ACTIVE' | 'UNSUBSCRIBED'): Promise<boolean> {
     const unsubscribedAt = status === 'UNSUBSCRIBED' ? new Date().toISOString() : null;
 
-    const result = await getDatabase().query(
-      'UPDATE subscribers SET status = $1, unsubscribed_at = $2 WHERE id = $3',
-      [status, unsubscribedAt, id]
-    );
+    const count = await getDatabase()('subscribers').where('id', id).update({
+      status,
+      unsubscribed_at: unsubscribedAt,
+    });
 
-    return (result.rowCount ?? 0) > 0;
+    return count > 0;
   },
 };

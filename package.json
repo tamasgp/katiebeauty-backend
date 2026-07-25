@@ -28,6 +28,7 @@
     "fastify": "^5.10.0",
     "fastify-plugin": "^6.0.0",
     "jsonwebtoken": "^9.0.2",
+    "knex": "^3.3.0",
     "pg": "^8.11.3",
     "zod": "^3.22.4"
   },
@@ -39,8 +40,8 @@
     "@typescript-eslint/eslint-plugin": "^6.17.0",
     "@typescript-eslint/parser": "^6.17.0",
     "eslint": "^8.56.0",
-    "tsx": "^4.7.0",
     "tsc-alias": "^1.9.1",
+    "tsx": "^4.7.0",
     "typescript": "^5.3.3"
   }
 }

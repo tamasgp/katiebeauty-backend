@@ -11,10 +11,10 @@ export interface Migration {
 const migrations: Migration[] = [V001];
 
 export async function runMigrations(): Promise<void> {
-  const pool = getDatabase();
+  const db = getDatabase();
 
   // Ensure the migrations tracking table exists
-  await pool.query(`
+  await db.raw(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
       version     INTEGER PRIMARY KEY,
       description TEXT    NOT NULL,
@@ -23,7 +23,7 @@ export async function runMigrations(): Promise<void> {
   `);
 
   // Determine which migrations have already been applied
-  const { rows } = await pool.query<{ version: number }>(
+  const { rows } = await db.raw<{ rows: { version: number }[] }>(
     'SELECT version FROM schema_migrations ORDER BY version'
   );
   const appliedVersions = new Set(rows.map((r) => r.version));
@@ -34,20 +34,12 @@ export async function runMigrations(): Promise<void> {
     .sort((a, b) => a.version - b.version);
 
   for (const migration of pending) {
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-      await client.query(migration.up);
-      await client.query(
-        'INSERT INTO schema_migrations (version, description, applied_at) VALUES ($1, $2, $3)',
+    await db.transaction(async (trx) => {
+      await trx.raw(migration.up);
+      await trx.raw(
+        'INSERT INTO schema_migrations (version, description, applied_at) VALUES (?, ?, ?)',
         [migration.version, migration.description, new Date().toISOString()]
       );
-      await client.query('COMMIT');
-    } catch (err) {
-      await client.query('ROLLBACK');
-      throw err;
-    } finally {
-      client.release();
-    }
+    });
   }
 }
