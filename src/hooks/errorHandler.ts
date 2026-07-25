@@ -33,9 +33,9 @@ export function registerErrorHandler(fastify: FastifyInstance): void {
       });
     }
 
-    const message = error instanceof Error ? error.message : 'Internal server error';
+    const message = (error instanceof Error && error.message) ? error.message : 'Internal server error';
     return reply.status(statusCode ?? 500).send({
-      message: message || 'Internal server error',
+      message,
     });
   });
 }
